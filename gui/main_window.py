@@ -6,158 +6,178 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QFont
 from store.store import Store
-from gui.package_info_dialog import PackageInfoDialog  # Import the dialog we created earlier
+from gui.package_info_dialog import PackageInfoDialog
 
 class PackageListItem(QWidget):
     def __init__(self, package_info, parent=None):
         super().__init__(parent)
         
         layout = QHBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(layout)
         
-        # Emoji based on package name first letter
+        # Updated emoji map with more relevant icons
         emoji_map = {
-            'a': '📱', 'b': '🔋', 'c': '⚡', 'd': '🔮', 'e': '🎮',
-            'f': '🔥', 'g': '🎨', 'h': '🏠', 'i': '💡', 'j': '🎯',
-            'k': '🔑', 'l': '📚', 'm': '🎵', 'n': '📊', 'o': '🌊',
-            'p': '🐍', 'q': '❓', 'r': '🚀', 's': '⭐', 't': '🎯',
-            'u': '🔄', 'v': '👁️', 'w': '🌊', 'x': '❌', 'y': '💫',
+            'a': '📊', 'b': '📦', 'c': '⚙️', 'd': '📱', 'e': '🔧',
+            'f': '📁', 'g': '🎮', 'h': '🔨', 'i': '💻', 'j': '🎯',
+            'k': '🔑', 'l': '📚', 'm': '🛠️', 'n': '📈', 'o': '💾',
+            'p': '🐍', 'q': '⚡', 'r': '🚀', 's': '⭐', 't': '🔄',
+            'u': '📥', 'v': '👁️', 'w': '🌐', 'x': '✨', 'y': '🔗',
             'z': '⚡'
         }
         
-        # Get package name and split off version info
-        package_name = package_info['name']
+        # Get package name and version
+        name_parts = package_info['name'].split('\n')
+        package_name = name_parts[0]
+        version = name_parts[1] if len(name_parts) > 1 else ""
         first_letter = package_name[0].lower()
         emoji = emoji_map.get(first_letter, '📦')
         
-        # Create labels
+        # Create labels with better styling
         emoji_label = QLabel(emoji)
-        emoji_label.setFont(QFont('Segoe UI Emoji', 14))
+        emoji_label.setFont(QFont('Segoe UI Emoji', 16))
+        emoji_label.setStyleSheet('color: #E0E0E0;')
+        
+        # Package info container
+        info_container = QWidget()
+        info_layout = QVBoxLayout(info_container)
+        info_layout.setSpacing(2)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Name and version layout
+        name_layout = QHBoxLayout()
+        name_layout.setSpacing(10)
         
         name_label = QLabel(package_name)
         name_label.setFont(QFont('Arial', 12, QFont.Weight.Bold))
+        name_label.setStyleSheet('color: #E0E0E0;')
+        
+        version_label = QLabel(version)
+        version_label.setFont(QFont('Arial', 10))
+        version_label.setStyleSheet('color: #808080;')
+        
+        name_layout.addWidget(name_label)
+        name_layout.addWidget(version_label)
+        name_layout.addStretch()
         
         desc_label = QLabel(package_info['description'])
         desc_label.setFont(QFont('Arial', 10))
-        desc_label.setStyleSheet('color: #666;')
+        desc_label.setStyleSheet('color: #B0B0B0;')
         desc_label.setWordWrap(True)
         
-        # Create a vertical layout for name and description
-        text_layout = QVBoxLayout()
-        text_layout.addWidget(name_label)
-        text_layout.addWidget(desc_label)
+        info_layout.addLayout(name_layout)
+        info_layout.addWidget(desc_label)
         
         # Add widgets to main layout
         layout.addWidget(emoji_label)
-        layout.addSpacing(10)
-        layout.addLayout(text_layout)
-        layout.addStretch()
+        layout.addWidget(info_container, stretch=1)
         
-        # Store the package info for later use
+        # Store the package info
         self.package_info = package_info
 
 class PyPIBrowser(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.store = Store()  # Create an instance of Store
+        self.store = Store()
         self.init_ui()
     
     def init_ui(self):
-        # Set up the main window
         self.setWindowTitle('PyPIBrowser 📦')
         self.setGeometry(100, 100, 800, 600)
         
-        # Create central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
         
-        # Create search layout with search bar and button
-        search_layout = QHBoxLayout()
+        # Search layout
+        search_container = QWidget()
+        search_container.setObjectName("searchContainer")
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(10, 10, 10, 10)
         
-        # Search icon
         search_icon = QLabel('🔍')
         search_icon.setFont(QFont('Segoe UI Emoji', 14))
+        search_icon.setStyleSheet('color: #B0B0B0;')
         
-        # Search bar
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText('Search PyPI packages...')
         self.search_bar.setFont(QFont('Arial', 12))
-        self.search_bar.returnPressed.connect(self.perform_search)  # Allow Enter key to trigger search
+        self.search_bar.returnPressed.connect(self.perform_search)
         
-        # Search button
         self.search_button = QPushButton('Search')
         self.search_button.setFont(QFont('Arial', 11))
         self.search_button.clicked.connect(self.perform_search)
+        self.search_button.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        # Add widgets to search layout
         search_layout.addWidget(search_icon)
         search_layout.addWidget(self.search_bar)
         search_layout.addWidget(self.search_button)
         
-        # Create results list
+        # Results list
         self.results_list = QListWidget()
         self.results_list.setFont(QFont('Arial', 11))
-        self.results_list.setSpacing(4)
+        self.results_list.setSpacing(2)
         self.results_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.results_list.customContextMenuRequested.connect(self.show_context_menu)
         
-        # Add widgets to main layout
-        layout.addLayout(search_layout)
+        layout.addWidget(search_container)
         layout.addWidget(self.results_list)
         
-        # Set up context menu actions
+        # Context menu actions
         self.info_action = QAction('📄 View Package Info', self)
         self.info_action.triggered.connect(self.show_package_info)
         self.install_action = QAction('⬇️ Copy Install Command', self)
         self.install_action.triggered.connect(self.copy_install_command)
         
-        # Apply styling
+        # Dark theme styling
         self.setStyleSheet("""
-            QMainWindow {
-                background-color: white;
+            QMainWindow, QWidget {
+                background-color: #1a1a1a;
+                color: #E0E0E0;
+            }
+            #searchContainer {
+                background-color: #1a1a1a;
+                border-radius: 4px;
             }
             QLineEdit {
                 padding: 8px;
-                border: 2px solid #ddd;
-                border-radius: 4px;
-                margin: 8px 0;
-            }
-            QPushButton {
-                padding: 8px 15px;
+                background-color: #2a2a2a;
                 border: none;
                 border-radius: 4px;
-                background-color: #2B5B84;
+                color: #E0E0E0;
+            }
+            QPushButton {
+                padding: 8px 20px;
+                background-color: #0078d7;
+                border: none;
+                border-radius: 4px;
                 color: white;
                 font-weight: bold;
             }
-            QPushButton:hover {
-                background-color: #1e3d5c;
-            }
             QListWidget {
-                border: 1px solid #ddd;
+                background-color: #1a1a1a;
+                border: none;
                 border-radius: 4px;
+                padding: 5px;
             }
             QListWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #eee;
+                background-color: #2a2a2a;
+                border-radius: 4px;
+                margin: 2px 5px;
             }
             QListWidget::item:selected {
-                background-color: #e3f2fd;
-                color: black;
+                background-color: #333333;
             }
         """)
 
     def perform_search(self):
         query = self.search_bar.text().strip()
         if query:
-            # Clear previous results
             self.results_list.clear()
-            
-            # Get search results using Store class
             results = self.store.search_package_store(query)
             
-            # Add results to list
             for result in results:
                 item = QListWidgetItem(self.results_list)
                 item_widget = PackageListItem(result)
@@ -183,7 +203,7 @@ class PyPIBrowser(QMainWindow):
         current_item = self.results_list.currentItem()
         if current_item:
             item_widget = self.results_list.itemWidget(current_item)
-            package_name = item_widget.package_info['name'].strip().split('\n')[0]
+            package_name = item_widget.package_info['name'].split('\n')[0]
             command = f"pip install {package_name}"
             QApplication.clipboard().setText(command)
 
