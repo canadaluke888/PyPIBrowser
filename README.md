@@ -2,6 +2,11 @@
 
 A simple package viewer that lets you look at information about packages on PyPI.
 
+## Preview
+![App screenshot for search results by searching numpy](screenshots/SearchResultsSS.png)
+
+![App Screenshot for detailed view of package information](screenshots/PackageInfoSS.png)
+
 ## Prerequisites
 - **Python 3.9+**
 
